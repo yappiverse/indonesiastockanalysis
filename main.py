@@ -1,7 +1,10 @@
 import argparse
+import os
+from datetime import datetime
 from joblib import Parallel, delayed
 from stock_analyzer import StockAnalyzer
 from summary_analyzer import SummaryAnalyzer
+from data_layer import CSVExporter
 from config import PARALLEL_CONFIG
 
 
@@ -97,6 +100,11 @@ def main():
         "--detailed",
         action="store_true",
         help="Print detailed backtest table for each ticker"
+    )
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Export results to CSV file with automatic filename (output/ddmmyyyy - hhmmss.csv)"
     )
     
     args = parser.parse_args()
@@ -242,6 +250,24 @@ def main():
     else:
         print(f"   Backend: sequential")
     print(f"   Data isolation: {'✓ ensured' if args.jobs != 1 else '✓ sequential processing'}")
+    
+    # Export to CSV if requested
+    if args.csv:
+        # Generate automatic filename with current date/time
+        current_time = datetime.now()
+        filename = current_time.strftime("output/%y%m%d - %H%M%S.csv")
+        
+        # Ensure output directory exists
+        os.makedirs("output", exist_ok=True)
+        
+        print(f"\n💾 EXPORTING TO CSV: {filename}")
+        try:
+            csv_exporter = CSVExporter()
+            csv_path = csv_exporter.export_to_csv(results, filename)
+            print(f"   ✅ Successfully exported {len(results)} results to: {csv_path}")
+            print(f"   📊 Columns: no, ticker, regime, confidence, action, risk, score")
+        except Exception as e:
+            print(f"   ❌ Failed to export CSV: {e}")
 
 
 if __name__ == "__main__":

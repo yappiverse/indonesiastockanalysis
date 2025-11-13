@@ -8,7 +8,9 @@ import warnings
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from typing import Optional, Dict, Any
+import csv
+import os
+from typing import Optional, Dict, Any, List
 from config import DATA_CONFIG
 
 
@@ -137,3 +139,85 @@ class DataFetcher:
 def format_ticker(ticker_raw: str) -> str:
     """Format ticker symbol with proper suffix."""
     return ticker_raw.upper() + DATA_CONFIG["ticker_suffix"]
+
+
+class CSVExporter:
+    """Handles CSV export functionality for stock analysis results."""
+    
+    def __init__(self):
+        self.csv_columns = [
+            "no", "ticker", "regime", "confidence", "action", "risk", "score"
+        ]
+    
+    def export_to_csv(self, results: List[Dict[str, Any]], filename: str = "stock_analysis.csv") -> str:
+        """
+        Export stock analysis results to CSV file.
+        
+        Args:
+            results: List of analysis result dictionaries
+            filename: Output CSV filename
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not results:
+            raise ValueError("No results to export")
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(filename) if os.path.dirname(filename) else ".", exist_ok=True)
+        
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self.csv_columns)
+            writer.writeheader()
+            
+            for i, result in enumerate(results, 1):
+                row = self._format_result_to_row(result, i)
+                writer.writerow(row)
+        
+        return os.path.abspath(filename)
+    
+    def _format_result_to_row(self, result: Dict[str, Any], row_number: int) -> Dict[str, str]:
+        """Format a single result dictionary to CSV row."""
+        # Handle failed analyses
+        if not result.get("success", False):
+            return {
+                "no": str(row_number),
+                "ticker": result.get("ticker", "Unknown"),
+                "regime": "FAILED",
+                "confidence": "0.00",
+                "buy/sell/hold": "UNAVAILABLE",
+                "risk": "UNKNOWN",
+                "score": "1"
+            }
+        
+        # Extract buy/sell/hold from recommendation
+        recommendation = result.get("recommendation", "HOLD")
+        buy_sell_hold = self._extract_buy_sell_hold(recommendation)
+        
+        # Format confidence as percentage
+        confidence = result.get("regime_confidence", 0.0)
+        confidence_str = f"{confidence:.2f}"
+        
+        # Get score (1-5 stars)
+        score = result.get("summary_score", 3)
+        
+        return {
+            "no": str(row_number),
+            "ticker": result.get("ticker", "Unknown"),
+            "regime": result.get("regime", "UNKNOWN"),
+            "confidence": confidence_str,
+            "action": buy_sell_hold,
+            "risk": result.get("risk", "MODERATE"),
+            "score": str(score)
+        }
+    
+    def _extract_buy_sell_hold(self, recommendation: str) -> str:
+        """Extract action from recommendation string."""
+        recommendation_lower = recommendation.lower()
+        
+        if "buy" in recommendation_lower:
+            return "BUY"
+        elif "sell" in recommendation_lower:
+            return "SELL"
+        else:
+            return "HOLD"
