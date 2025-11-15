@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Test different joblib backends to identify the best solution for parallel processing.
-"""
-
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd

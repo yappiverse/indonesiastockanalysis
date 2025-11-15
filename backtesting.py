@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Backtesting module for stock analysis.
-Provides portfolio backtesting with regime-based strategies.
-"""
-
 import vectorbt as vbt
 import pandas as pd
 from typing import List, Dict, Any, Optional

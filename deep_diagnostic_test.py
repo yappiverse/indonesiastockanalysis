@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Deep diagnostic to identify the exact source of data contamination
-"""
-
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd

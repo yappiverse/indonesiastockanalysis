@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Main orchestrator class for stock analysis system.
-Coordinates data fetching, feature engineering, regime detection, and backtesting.
-"""
-
 import warnings
 import pandas as pd
 from typing import Dict, Any, List, Optional

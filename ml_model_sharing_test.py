@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Test to confirm ML model sharing between RegimeDetector instances
-"""
-
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd

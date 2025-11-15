@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Diagnostic test to identify the root cause of identical results in parallel processing.
-"""
-
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd

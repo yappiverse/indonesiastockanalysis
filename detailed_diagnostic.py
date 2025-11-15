@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Detailed diagnostic to understand identical returns issue and data structure.
-"""
-
 import warnings
 warnings.filterwarnings("ignore")
 

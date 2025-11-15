@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Diagnostic test to identify financial metrics calculation issues.
-"""
-
 import warnings
 warnings.filterwarnings("ignore")
 

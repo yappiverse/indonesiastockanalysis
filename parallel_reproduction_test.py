@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Test to reproduce the exact parallel processing issue
-"""
-
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd

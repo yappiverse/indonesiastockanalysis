@@ -12,6 +12,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from xgboost import XGBClassifier
 from config import REGIME_CONFIG
 
 
@@ -120,7 +121,7 @@ class RegimeDetector:
         svc = SVC(**ensemble_config["svc"])
         log = LogisticRegression(**ensemble_config["logistic_regression"])
         
-        # Create ensemble
+        # Create ensemble without XGBoost due to compatibility issues
         ensemble = VotingClassifier(
             estimators=[("rf", rf), ("gb", gb), ("svc", svc), ("log", log)],
             voting="soft"

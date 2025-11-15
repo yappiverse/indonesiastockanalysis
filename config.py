@@ -59,6 +59,15 @@ REGIME_CONFIG = {
             "logistic_regression": {
                 "max_iter": 2000,
                 "n_jobs": 1
+            },
+            "xgboost": {
+                "n_estimators": 200,
+                "learning_rate": 0.1,
+                "max_depth": 6,
+                "subsample": 0.8,
+                "colsample_bytree": 0.8,
+                "random_state": 42,
+                "objective": "multi:softprob"
             }
         }
     }

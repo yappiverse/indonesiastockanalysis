@@ -192,9 +192,18 @@ def main():
             
             # Print key metrics
             metrics = result['key_metrics']
-            print(f"   Returns: {metrics.get('total_return', 'N/A'):.2f}% | "
-                  f"Sharpe: {metrics.get('sharpe_ratio', 'N/A'):.2f} | "
-                  f"Win Rate: {metrics.get('win_rate', 'N/A'):.1f}%")
+            total_return = metrics.get('total_return', 'N/A')
+            sharpe_ratio = metrics.get('sharpe_ratio', 'N/A')
+            win_rate = metrics.get('win_rate', 'N/A')
+            
+            # Format numeric values, leave strings as-is
+            returns_str = f"{total_return:.2f}%" if isinstance(total_return, (int, float)) else str(total_return)
+            sharpe_str = f"{sharpe_ratio:.2f}" if isinstance(sharpe_ratio, (int, float)) else str(sharpe_ratio)
+            win_rate_str = f"{win_rate:.1f}%" if isinstance(win_rate, (int, float)) else str(win_rate)
+            
+            print(f"   Returns: {returns_str} | "
+                  f"Sharpe: {sharpe_str} | "
+                  f"Win Rate: {win_rate_str}")
             
             # Print full rationale without truncation
             rationale = result['rationale']
