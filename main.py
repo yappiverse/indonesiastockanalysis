@@ -51,6 +51,21 @@ def process_ticker_wrapper(ticker: str, use_cache: bool = True) -> dict:
             portfolio, ticker, summary['regime'], summary['regime_confidence']
         )
     
+    # Get latest price data including opening price
+    price_data = None
+    try:
+        # Import inside function to ensure fresh imports in each thread
+        from data_layer import DataFetcher
+        data_fetcher = DataFetcher()
+        price_data = data_fetcher.get_latest_price(summary['ticker'])
+    except Exception as e:
+        price_data = {
+            'ticker': summary['ticker'],
+            'opening_price': None,
+            'success': False,
+            'error': str(e)
+        }
+
     # Return only serializable data for parallel processing
     return {
         'ticker': summary['ticker'],
@@ -65,7 +80,8 @@ def process_ticker_wrapper(ticker: str, use_cache: bool = True) -> dict:
         'summary_score': summary['summary_score'],
         'success': summary.get('success', True),
         'backtest_report': backtest_report,  # Store pre-generated report instead of reporter object
-        'has_portfolio': bool(result.get('portfolio'))  # Flag to indicate if portfolio data exists
+        'has_portfolio': bool(result.get('portfolio')),  # Flag to indicate if portfolio data exists
+        'price_data': price_data  # Include latest price data
     }
 
 
@@ -274,7 +290,7 @@ def main():
             csv_exporter = CSVExporter()
             csv_path = csv_exporter.export_to_csv(results, filename)
             print(f"   ✅ Successfully exported {len(results)} results to: {csv_path}")
-            print(f"   📊 Columns: no, ticker, regime, confidence, action, risk, score")
+            print(f"   📊 Columns: no, ticker, current_price, regime, confidence, action, risk, score")
         except Exception as e:
             print(f"   ❌ Failed to export CSV: {e}")
 

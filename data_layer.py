@@ -135,6 +135,61 @@ class DataFetcher:
             "cached_tickers": list(self._cache.keys())
         }
 
+    def get_latest_price(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get the latest price data for a ticker.
+        This method uses the current/latest price as the "opening_price" value
+        since the script typically runs after market hours.
+        
+        Args:
+            ticker: Stock ticker symbol
+            
+        Returns:
+            Dictionary with latest price information where opening_price = current_price
+        """
+        try:
+            # Fetch the most recent data (1d interval for latest prices)
+            df = self.get_ohlcv(
+                ticker,
+                period="1d",
+                interval="1d",
+                use_cache=False  # Don't cache to get fresh data
+            )
+            
+            if df is None or df.empty:
+                raise ValueError(f"No recent data available for {ticker}")
+            
+            # Get the latest record
+            latest_record = df.iloc[-1]
+            
+            # Use the current/latest price as the "opening_price" value
+            # since the script runs after market hours
+            current_price = float(latest_record["Close"])
+            
+            return {
+                "ticker": ticker,
+                "opening_price": current_price,  # Use current price as opening price
+                "current_price": current_price,
+                "high_price": float(latest_record["High"]),
+                "low_price": float(latest_record["Low"]),
+                "volume": int(latest_record["Volume"]),
+                "timestamp": df.index[-1].strftime("%Y-%m-%d %H:%M:%S"),
+                "success": True
+            }
+            
+        except Exception as e:
+            return {
+                "ticker": ticker,
+                "opening_price": None,
+                "current_price": None,
+                "high_price": None,
+                "low_price": None,
+                "volume": None,
+                "timestamp": None,
+                "success": False,
+                "error": str(e)
+            }
+
 
 def format_ticker(ticker_raw: str) -> str:
     """Format ticker symbol with proper suffix."""
@@ -146,7 +201,7 @@ class CSVExporter:
     
     def __init__(self):
         self.csv_columns = [
-            "no", "ticker", "regime", "confidence", "action", "risk", "score"
+            "no", "ticker", "current_price", "regime", "confidence", "action", "risk", "score"
         ]
     
     def export_to_csv(self, results: List[Dict[str, Any]], filename: str = "stock_analysis.csv") -> str:
@@ -183,9 +238,10 @@ class CSVExporter:
             return {
                 "no": str(row_number),
                 "ticker": result.get("ticker", "Unknown"),
+                "current_price": "N/A",
                 "regime": "FAILED",
                 "confidence": "0.00",
-                "buy/sell/hold": "UNAVAILABLE",
+                "action": "UNAVAILABLE",
                 "risk": "UNKNOWN",
                 "score": "1"
             }
@@ -201,9 +257,16 @@ class CSVExporter:
         # Get score (1-5 stars)
         score = result.get("summary_score", 3)
         
+        # Get current price from price_data if available
+        current_price = "N/A"
+        price_data = result.get("price_data")
+        if price_data and price_data.get("success"):
+            current_price = f"{price_data.get('opening_price', 'N/A')}"  # opening_price now contains current price
+        
         return {
             "no": str(row_number),
             "ticker": result.get("ticker", "Unknown"),
+            "current_price": current_price,
             "regime": result.get("regime", "UNKNOWN"),
             "confidence": confidence_str,
             "action": buy_sell_hold,
