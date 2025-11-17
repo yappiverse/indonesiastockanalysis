@@ -73,7 +73,7 @@ class FeatureEngineer:
         
         # Add trend difference
         if len(ma_periods) >= 2:
-            df["trend_diff"] = df[f"ma{ma_periods[1]}"] - df[f"ma{ma_periods[2]}"]
+            df["trend_diff"] = df[f"ma{ma_periods[0]}"] - df[f"ma{ma_periods[1]}"]
         
         return df
     

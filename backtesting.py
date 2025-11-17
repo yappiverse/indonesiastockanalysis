@@ -170,8 +170,8 @@ class PerformanceReporter:
         pass
     
     def generate_summary_report(
-        self, 
-        portfolio: vbt.Portfolio, 
+        self,
+        portfolio: vbt.Portfolio,
         ticker: str,
         regime: str,
         confidence: float
@@ -190,14 +190,25 @@ class PerformanceReporter:
         """
         stats = portfolio.stats()
         
+        # Check performance-based disqualifiers (aligned with SummaryAnalyzer logic)
+        total_return = stats['Total Return [%]']
+        win_rate = stats['Win Rate [%]']
+        sharpe_ratio = stats['Sharpe Ratio']
+        
+        performance_disqualifier = (
+            total_return < 0 or
+            win_rate < 40 or
+            sharpe_ratio < 0
+        )
+        
         report = f"""
 ===== BACKTEST RESULTS for {ticker} =====
 
 📊 Performance Summary:
-  Total Return: {stats['Total Return [%]']:.2f}%
-  Sharpe Ratio: {stats['Sharpe Ratio']:.2f}
+  Total Return: {total_return:.2f}%
+  Sharpe Ratio: {sharpe_ratio:.2f}
   Max Drawdown: {stats['Max Drawdown [%]']:.2f}%
-  Win Rate: {stats['Win Rate [%]']:.2f}%
+  Win Rate: {win_rate:.2f}%
 
 📈 Trading Activity:
   Total Trades: {stats['Total Trades']}
@@ -209,8 +220,18 @@ class PerformanceReporter:
   Confidence: {confidence:.2f}
 """
         
+        # Aligned messaging with SummaryAnalyzer logic
         if regime in ["Bull", "Recovery"]:
-            report += "\n🔥 BUY SIGNAL - Favorable regime detected"
+            if performance_disqualifier:
+                report += "\n⚠️  CAUTION - Favorable regime but poor performance"
+                if total_return < 0:
+                    report += f" (Negative returns: {total_return:.2f}%)"
+                elif win_rate < 40:
+                    report += f" (Low win rate: {win_rate:.2f}%)"
+                elif sharpe_ratio < 0:
+                    report += f" (Negative Sharpe: {sharpe_ratio:.2f})"
+            else:
+                report += "\n🔥 BUY SIGNAL - Favorable regime and strong performance"
         else:
             report += "\n❌ No long setup - Wait for better conditions"
         

@@ -93,26 +93,36 @@ class SummaryAnalyzer:
     def _generate_recommendation(self, regime: str, confidence: float, stats: Dict) -> Tuple[Recommendation, float]:
         """Generate buy/sell/hold recommendation based on regime and performance."""
         
+        # Check for performance-based disqualifiers
+        if self._should_disqualify_buy_recommendation(stats):
+            # Poor performance overrides regime-based BUY recommendations
+            if regime in self.buy_regimes:
+                return Recommendation.HOLD, 0.3
+            elif regime in self.sell_regimes:
+                return Recommendation.SELL, 0.2
+            else:
+                return Recommendation.HOLD, 0.4
+        
         # Base recommendation from regime
         if regime in self.buy_regimes:
             base_rec = Recommendation.BUY
-            base_score = 0.7
+            base_score = 0.6  # Reduced from 0.7 to give more weight to performance
         elif regime in self.sell_regimes:
             base_rec = Recommendation.SELL
-            base_score = 0.7
+            base_score = 0.6
         else:
             base_rec = Recommendation.HOLD
-            base_score = 0.5
+            base_score = 0.4
         
         # Adjust based on performance metrics
         performance_score = self._calculate_performance_score(stats)
         regime_confidence_score = min(confidence, 1.0)  # Normalize confidence
         
-        # Combine scores
-        final_score = (base_score * 0.4 + performance_score * 0.4 + regime_confidence_score * 0.2)
+        # Combine scores with increased performance weight (70%)
+        final_score = (base_score * 0.2 + performance_score * 0.7 + regime_confidence_score * 0.1)
         
-        # Map to recommendation
-        if final_score >= 0.8:
+        # Map to recommendation with more conservative thresholds
+        if final_score >= 0.75:
             if base_rec == Recommendation.BUY:
                 return Recommendation.STRONG_BUY, final_score
             elif base_rec == Recommendation.SELL:
@@ -124,9 +134,9 @@ class SummaryAnalyzer:
                 return Recommendation.BUY, final_score
             else:
                 return base_rec, final_score
-        elif final_score >= 0.4:
+        elif final_score >= 0.45:
             return Recommendation.HOLD, final_score
-        elif final_score >= 0.2:
+        elif final_score >= 0.3:
             if base_rec == Recommendation.HOLD:
                 return Recommendation.SELL, final_score
             else:
@@ -139,53 +149,79 @@ class SummaryAnalyzer:
             else:
                 return Recommendation.SELL, final_score
     
+    def _should_disqualify_buy_recommendation(self, stats: Dict) -> bool:
+        """Check if performance metrics disqualify BUY recommendation."""
+        total_return = stats.get('Total Return [%]', 0)
+        win_rate = stats.get('Win Rate [%]', 50)
+        sharpe_ratio = stats.get('Sharpe Ratio', 1.0)
+        
+        # Disqualify BUY if any of these poor performance conditions are met
+        if total_return < 0:  # Negative total returns
+            return True
+        if win_rate < 40:     # Win rate below 40%
+            return True
+        if sharpe_ratio < 0:  # Negative Sharpe ratio
+            return True
+        
+        return False
+    
     def _calculate_performance_score(self, stats: Dict) -> float:
         """Calculate performance score from backtest statistics."""
-        score = 0.5  # Neutral starting point
+        score = 0.4  # More conservative starting point
         
-        # Total Return impact
+        # Total Return impact (more conservative thresholds)
         total_return = stats.get('Total Return [%]', 0)
-        if total_return > 10:
-            score += 0.2
-        elif total_return > 5:
-            score += 0.1
-        elif total_return < -5:
-            score -= 0.1
-        elif total_return < -10:
-            score -= 0.2
-        
-        # Win Rate impact
-        win_rate = stats.get('Win Rate [%]', 50)
-        if win_rate > 60:
+        if total_return > 15:
+            score += 0.25
+        elif total_return > 8:
             score += 0.15
+        elif total_return > 3:
+            score += 0.05
+        elif total_return < -2:
+            score -= 0.1
+        elif total_return < -5:
+            score -= 0.2
+        elif total_return < -10:
+            score -= 0.3
+        
+        # Win Rate impact (more conservative thresholds)
+        win_rate = stats.get('Win Rate [%]', 50)
+        if win_rate > 65:
+            score += 0.2
         elif win_rate > 55:
             score += 0.1
-        elif win_rate < 40:
+        elif win_rate > 45:
+            score += 0.05
+        elif win_rate < 35:
             score -= 0.1
-        elif win_rate < 30:
-            score -= 0.15
+        elif win_rate < 25:
+            score -= 0.2
         
-        # Sharpe Ratio impact
+        # Sharpe Ratio impact (more conservative thresholds)
         sharpe = stats.get('Sharpe Ratio', 1.0)
-        if sharpe > 1.5:
-            score += 0.15
-        elif sharpe > 1.0:
+        if sharpe > 2.0:
+            score += 0.2
+        elif sharpe > 1.2:
             score += 0.1
-        elif sharpe < 0.5:
+        elif sharpe > 0.8:
+            score += 0.05
+        elif sharpe < 0.3:
             score -= 0.1
         elif sharpe < 0:
-            score -= 0.15
+            score -= 0.2
         
-        # Max Drawdown impact
+        # Max Drawdown impact (more conservative thresholds)
         max_dd = abs(stats.get('Max Drawdown [%]', 0))
-        if max_dd < 5:
+        if max_dd < 3:
+            score += 0.15
+        elif max_dd < 6:
             score += 0.1
         elif max_dd < 10:
             score += 0.05
-        elif max_dd > 20:
-            score -= 0.1
         elif max_dd > 15:
-            score -= 0.05
+            score -= 0.1
+        elif max_dd > 25:
+            score -= 0.2
         
         return max(0.0, min(1.0, score))
     
